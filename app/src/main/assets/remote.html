@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Stremio App</title>
+<style>
+  :root { --fg:#f2f2f2; --dim:#8a8a8a; --btn:#141414; --btn2:#1f1f1f; --acc:#7b5bf5; --bad:#e5484d; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+  html,body { margin:0; height:100%; background:#000; color:var(--fg);
+    font:16px/1.3 system-ui,-apple-system,Roboto,sans-serif; overscroll-behavior:none; }
+  body { display:flex; flex-direction:column; padding:calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 10px); gap:10px; }
+  header { display:flex; align-items:center; gap:10px; }
+  header h1 { font-size:17px; font-weight:600; margin:0; flex:1; }
+  #dot { width:10px; height:10px; border-radius:50%; background:var(--dim); }
+  #dot.ok { background:#30a46c; } #dot.bad { background:var(--bad); }
+  .tabs { display:flex; background:var(--btn); border-radius:12px; padding:3px; }
+  .tabs button { flex:1; background:none; border:0; color:var(--dim); padding:9px; border-radius:9px; font-size:15px; }
+  .tabs button.on { background:var(--btn2); color:var(--fg); }
+  form { display:flex; gap:8px; }
+  input[type=text] { flex:1; min-width:0; background:var(--btn); border:1px solid #2a2a2a; color:var(--fg);
+    border-radius:12px; padding:14px; font-size:17px; user-select:text; }
+  input[type=text]:focus { outline:none; border-color:var(--acc); }
+  button { font:inherit; color:var(--fg); }
+  .b { background:var(--btn); border:0; border-radius:14px; min-height:52px; font-size:16px; touch-action:manipulation; padding:0 6px; }
+  .b:active, .b.press { background:#2b2b2b; }
+  .acc { background:var(--acc); } .acc:active { background:#6346d8; }
+  .row { display:grid; gap:10px; }
+  /* Keep "Type text only" on one line on phones with large system text. */
+  .textrow .b { white-space:nowrap; font-size:min(16px, 3.6vw); }
+  .r2 { grid-template-columns:1fr 1fr; } .r3 { grid-template-columns:repeat(3,1fr); } .r4 { grid-template-columns:repeat(4,1fr); }
+  /* Sized by height too, so every row fits on one phone screen without scrolling. */
+  .pad { position:relative; width:min(78vw,330px,34vh); aspect-ratio:1; margin:2px auto; border-radius:50%;
+    background:var(--btn); }
+  .pad button { position:absolute; background:none; border:0; display:flex; align-items:center; justify-content:center; touch-action:manipulation; }
+  .pad .u,.pad .d { left:30%; width:40%; height:30%; } .pad .u { top:0; } .pad .d { bottom:0; }
+  .pad .l,.pad .r { top:30%; width:30%; height:40%; } .pad .l { left:0; } .pad .r { right:0; }
+  .pad .ok { left:30%; top:30%; width:40%; height:40%; border-radius:50%; background:var(--btn2); font-weight:600; font-size:18px; }
+  .pad button:active { color:var(--acc); } .pad .ok:active { background:#2b2b2b; }
+  svg { width:30px; height:30px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+  .b svg { width:24px; height:24px; vertical-align:middle; }
+  #track { flex:1; min-height:300px; background:var(--btn); border-radius:18px; touch-action:none;
+    display:flex; align-items:center; justify-content:center; color:var(--dim); font-size:14px; text-align:center; padding:20px; }
+  .speed { display:flex; align-items:center; gap:12px; background:var(--btn); border-radius:14px; padding:10px 14px; font-size:15px; color:var(--dim); }
+  .speed input { flex:1; accent-color:var(--acc); height:28px; touch-action:pan-x; }
+  .speed output { min-width:1.5em; text-align:right; color:var(--fg); font-weight:600; }
+  .hidden { display:none !important; }
+  #toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px); transform:translateX(-50%);
+    background:#222; padding:10px 16px; border-radius:10px; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  #toast.show { opacity:1; }
+  #devbtn { flex:1; min-width:0; display:flex; align-items:center; gap:6px; background:none; border:0; padding:6px 0; text-align:left; }
+  #devbtn span { font-size:17px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #devbtn small { color:var(--dim); font-size:13px; }
+  #devbtn:focus { outline:none; }
+</style>
+</head>
+<body>
+<header>
+  <span id="dot"></span>
+  <button id="devbtn" title="Switch device"><span id="devname">…</span><small>▾</small></button>
+  <button class="b hidden" style="min-height:40px;padding:0 12px" data-disp="off" title="Display off">TV off</button>
+  <button class="b hidden" style="min-height:40px;padding:0 12px" data-disp="on" title="Display on">on</button>
+</header>
+
+
+<form id="sform">
+  <input type="text" id="q" placeholder="Search or type…" autocomplete="off" enterkeyhint="search">
+</form>
+<div class="row r3 textrow">
+  <button class="b acc" id="typebtn">Type text only</button>
+  <button class="b acc" type="submit" form="sform">Search</button>
+  <button class="b" data-key="backspace">⌫ Delete</button>
+</div>
+
+<div class="tabs"><button class="on" data-tab="remote">Remote</button><button data-tab="track">Trackpad</button></div>
+
+<section id="remote" class="row">
+  <div class="pad">
+    <button class="u" data-key="up" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+    <button class="l" data-key="left" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <button class="ok" data-key="ok">OK</button>
+    <button class="r" data-key="right" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="d" data-key="down" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+  </div>
+  <div class="row r3">
+    <button class="b" data-key="back">Back</button>
+    <button class="b" data-key="home">Home</button>
+    <button class="b" data-key="fullscreen">Fullscreen</button>
+  </div>
+  <div class="row r3">
+    <button class="b" data-key="seekback">« Seek</button>
+    <button class="b acc" data-key="playpause">⏯ Play</button>
+    <button class="b" data-key="seekfwd">Seek »</button>
+  </div>
+  <div class="row r3">
+    <button class="b" data-vol="down">Vol −</button>
+    <button class="b" data-vol="mute">Mute</button>
+    <button class="b" data-vol="up">Vol +</button>
+  </div>
+  <div class="row r3">
+    <button class="b" data-key="discover">Discover</button>
+    <button class="b" data-key="library">Library</button>
+    <button class="b" data-key="search">Search pg</button>
+  </div>
+</section>
+
+<section id="trackpane" class="hidden" style="display:flex;flex-direction:column;gap:10px;flex:1">
+  <div id="track">Drag to move · tap to click · two-finger drag to scroll</div>
+  <label class="speed">Speed <input type="range" id="speed" min="1" max="10" step="1" value="5"><output id="speedval">5</output></label>
+  <div class="row r3">
+    <button class="b" data-mouse="click">Left click</button>
+    <button class="b" data-mouse="rightclick">Right click</button>
+    <button class="b" data-key="back">Back</button>
+  </div>
+</section>
+
+<div id="toast"></div>
+
+<script>
+// Every request goes through the app (window.Remote), which calls the current
+// device natively with its token: a Stremio install's remote relay, or the
+// Linux HTPC backend. Both speak the same API.
+const $ = s => document.querySelector(s);
+const dot = $('#dot');
+const buzz = (ms = 15) => { if (navigator.vibrate) navigator.vibrate(ms); };
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
+
+const pending = new Map();
+let seq = 0;
+window.__reply = (id, status, body) => { const done = pending.get(id); if (done) { pending.delete(id); done({ status, body }); } };
+const call = (method, path, body) => new Promise(done => {
+  const id = ++seq; pending.set(id, done);
+  Remote.request(id, method, path, body ? JSON.stringify(body) : '');
+});
+
+async function api(path, body) {
+  const r = await call('POST', path, body);
+  let j = {}; try { j = JSON.parse(r.body); } catch (e) {}
+  if (r.status === 0) { dot.className = 'bad'; toast('Device unreachable: same Wi-Fi?'); return null; }
+  if (r.status === 401) { dot.className = 'bad'; toast('Pairing expired: scan the code again'); return null; }
+  if (r.status >= 300) { dot.className = r.status === 503 ? 'bad' : 'ok'; toast(j.detail || ('Error ' + r.status)); return null; }
+  dot.className = 'ok'; return j;
+}
+// The HTPC backend reports wpctl's "Volume: 0.45 [MUTED]"; Stremio reports {volume: 45, muted}.
+window.remoteVolume = dir => api('/volume/' + dir).then(r => {
+  if (!r) return;
+  if (r.note) return toast(r.note);
+  if (typeof r.volume === 'number') return toast('Volume ' + Math.round(r.volume) + '%' + (r.muted ? ' (muted)' : ''));
+  const m = /([\d.]+)/.exec(r.volume || '');
+  toast('Volume ' + (m ? Math.round(m[1] * 100) + '%' : '?') + (/MUTED/.test(r.volume) ? ' (muted)' : ''));
+});
+
+$('#devbtn').onclick = () => { buzz(); Remote.switchDevice(); };
+
+// Buttons with key-repeat on hold for the d-pad.
+document.querySelectorAll('[data-key]').forEach(b => {
+  let hold, rep;
+  const fire = () => { buzz(); api('/key/' + b.dataset.key).then(r => r && r.note && toast(r.note)); };
+  const stop = () => { clearTimeout(hold); clearInterval(rep); };
+  b.addEventListener('pointerdown', e => { e.preventDefault(); fire(); if (b.closest('.pad') || b.dataset.key.startsWith('seek') || b.dataset.key === 'backspace') hold = setTimeout(() => rep = setInterval(fire, 120), 450); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, stop));
+});
+document.querySelectorAll('[data-vol]').forEach(b => b.addEventListener('click', () => { buzz(); window.remoteVolume(b.dataset.vol); }));
+document.querySelectorAll('[data-disp]').forEach(b => b.addEventListener('click', () => { buzz(30); api('/display/' + b.dataset.disp).then(r => r && toast('Display ' + b.dataset.disp)); }));
+document.querySelectorAll('[data-mouse]').forEach(b => b.addEventListener('click', () => { buzz(); api('/mouse', { action: b.dataset.mouse }); }));
+
+$('#sform').onsubmit = e => { e.preventDefault(); const t = $('#q').value.trim(); if (!t) return; buzz(25); api('/search', { text: t }).then(r => r && (toast('Searching “' + t + '”'), $('#q').blur())); };
+$('#typebtn').onclick = () => { const t = $('#q').value; if (!t) return; buzz(25); api('/type', { text: t }).then(r => r && (r.note ? toast(r.note) : ($('#q').value = '', toast('Typed')))); };
+
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  const track = b.dataset.tab === 'track';
+  $('#remote').classList.toggle('hidden', track); $('#trackpane').classList.toggle('hidden', !track);
+});
+
+// Trackpad: batch relative motion, ~30 sends/sec.
+(() => {
+  const pad = $('#track'); const pts = new Map();
+  let acc = { x: 0, y: 0 }, scrollAcc = 0, moved = false, downAt = 0, sending = false;
+  // Pointer speed: level 1–10 from the slider, remembered on this phone. Motion
+  // is sized for a 4K screen; Stremio scales it to its own window.
+  const slider = $('#speed'), shown = $('#speedval');
+  let level = 5;
+  try { level = Math.min(10, Math.max(1, +localStorage.getItem('trackSpeed') || 5)); } catch (e) {}
+  slider.value = shown.textContent = level;
+  slider.oninput = () => {
+    level = +slider.value; shown.textContent = level; buzz(8);
+    try { localStorage.setItem('trackSpeed', level); } catch (e) {}
+  };
+  const speed = () => level * 2;
+  async function flush() {
+    if (sending) return; sending = true;
+    while (Math.abs(acc.x) >= 1 || Math.abs(acc.y) >= 1 || Math.abs(scrollAcc) >= 20) {
+      if (Math.abs(scrollAcc) >= 20) { const dy = Math.round(scrollAcc); scrollAcc = 0; await api('/mouse', { action: 'scroll', dy }); continue; }
+      // The device caps one move at ±2000 px; carry any excess into the next send.
+      const cap = v => Math.max(-2000, Math.min(2000, Math.round(v)));
+      const dx = cap(acc.x), dy = cap(acc.y); acc = { x: acc.x - dx, y: acc.y - dy };
+      await api('/mouse', { action: 'move', dx, dy });
+    }
+    sending = false;
+  }
+  pad.addEventListener('pointerdown', e => { pad.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = false; downAt = Date.now(); });
+  pad.addEventListener('pointermove', e => {
+    const p = pts.get(e.pointerId); if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (Math.abs(dx) + Math.abs(dy) > 2) moved = true;
+    if (pts.size >= 2) scrollAcc += dy / pts.size; else { acc.x += dx * speed(); acc.y += dy * speed(); }
+    flush();
+  });
+  const up = e => { pts.delete(e.pointerId); if (!moved && Date.now() - downAt < 250 && pts.size === 0) { buzz(); api('/mouse', { action: 'click' }); } };
+  pad.addEventListener('pointerup', up); pad.addEventListener('pointercancel', e => pts.delete(e.pointerId));
+})();
+
+// Called by the app on launch and whenever the device changes.
+window.deviceChanged = async () => {
+  const d = JSON.parse(Remote.device() || 'null');
+  $('#devname').textContent = d ? d.name : 'No device';
+  dot.className = '';
+  if (!d) return;
+  const r = await call('GET', '/health');
+  let h = {}; try { h = JSON.parse(r.body); } catch (e) {}
+  dot.className = r.status === 200 ? 'ok' : 'bad';
+  // TV power only exists on the Linux HTPC backend.
+  const htpc = r.status === 200 && h.kind !== 'stremio-relay';
+  document.querySelectorAll('[data-disp]').forEach(b => b.classList.toggle('hidden', !htpc));
+  if (r.status === 0) toast('Can\'t reach ' + d.name + ': same Wi-Fi?');
+  else if (h.kind === 'stremio-relay' && !h.page_connected) toast('Stremio isn\'t open on ' + d.name);
+  else if (r.status === 200) toast('Connected to ' + d.name);
+};
+window.deviceChanged();
+Remote.ready();
+</script>
+</body>
+</html>
