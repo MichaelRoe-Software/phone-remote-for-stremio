@@ -15,6 +15,18 @@ remote channel. That change lives on two forks:
 > ("Stremio App") is a working title. No builds are published, and the app won't
 > be published under the Stremio name without their permission.
 
+## Screenshots
+
+In Stremio, **Settings → Phone remote** shows the pairing code:
+
+<img src="docs/stremio-settings.png" alt="Stremio Settings, Phone remote section with the pairing QR code" width="800">
+
+The app:
+
+| Remote | Trackpad | Devices | Switching device |
+|---|---|---|---|
+| <img src="docs/remote.png" alt="Remote screen with d-pad, search and playback buttons" width="200"> | <img src="docs/trackpad.png" alt="Trackpad screen with speed slider and click buttons" width="200"> | <img src="docs/devices.png" alt="Devices screen listing named devices, Scan QR code and Add manually" width="200"> | <img src="docs/switch-device.png" alt="Device picker dialog" width="200"> |
+
 ## How it fits together
 
 ```
